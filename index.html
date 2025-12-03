@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Censnnova - El Juego</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Reporte de Logros y Retos - Censnnova</h1>
+        <p>Usa las <strong>flechas del t    eclado</strong> para mover al personaje (cuadrado azul) hacia los puntos de interés (rojos).</p>
+        
+        <div id="game-container">
+            <canvas id="gameCanvas"></canvas>
+            
+            <!-- El Popup -->
+            <div id="popup" class="hidden">
+                <div class="popup-content">
+                    <h2 id="popup-title">Título</h2>
+                    <p id="popup-text">Texto del logro...</p>
+                    <button id="close-btn">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
