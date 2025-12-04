@@ -1,10 +1,16 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const gameContainer = document.getElementById('game-container');
 
-// Ajustar canvas al tamaño de la ventana
+// Ajustar canvas al tamaño del contenedor (no de la ventana)
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    if (gameContainer) {
+        canvas.width = gameContainer.clientWidth;
+        canvas.height = gameContainer.clientHeight;
+    } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
 }
 resizeCanvas();
 
@@ -16,7 +22,7 @@ const popupTimer = document.getElementById('popup-timer');
 const closeBtn = document.getElementById('close-btn');
 const teamDisplay = document.getElementById('team-display');
 const victoryModal = document.getElementById('victory-modal');
-const gameContainer = document.getElementById('game-container');
+// gameContainer ya definido arriba
 const playerElement = document.getElementById('player');
 
 // Contenedor de decoraciones (DOM para GIFs y tamaños grandes)
@@ -516,6 +522,12 @@ window.addEventListener('resize', () => {
     generateMap();
 });
 
+// Asegurar carga correcta en móviles
+window.addEventListener('load', () => {
+    resizeCanvas();
+    generateMap();
+});
+
 // Jugador
 // (Definido arriba para usar sus coordenadas en generateMap)
 
@@ -538,6 +550,38 @@ window.addEventListener('keyup', (e) => {
         keys[e.code] = false;
     }
 });
+
+// Controles Táctiles
+const btnUp = document.getElementById('btn-up');
+const btnDown = document.getElementById('btn-down');
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+
+function addTouchListeners(btn, key) {
+    if (!btn) return;
+    
+    const startHandler = (e) => {
+        if (e.cancelable) e.preventDefault(); // Evitar scroll/zoom
+        keys[key] = true;
+    };
+    
+    const endHandler = (e) => {
+        if (e.cancelable) e.preventDefault();
+        keys[key] = false;
+    };
+
+    btn.addEventListener('mousedown', startHandler);
+    btn.addEventListener('touchstart', startHandler, { passive: false });
+    
+    btn.addEventListener('mouseup', endHandler);
+    btn.addEventListener('touchend', endHandler);
+    btn.addEventListener('mouseleave', endHandler);
+}
+
+addTouchListeners(btnUp, 'ArrowUp');
+addTouchListeners(btnDown, 'ArrowDown');
+addTouchListeners(btnLeft, 'ArrowLeft');
+addTouchListeners(btnRight, 'ArrowRight');
 
 closeBtn.addEventListener('click', () => {
     closePopup();
