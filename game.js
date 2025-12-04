@@ -16,12 +16,20 @@ const popupTimer = document.getElementById('popup-timer');
 const closeBtn = document.getElementById('close-btn');
 const teamDisplay = document.getElementById('team-display');
 const victoryModal = document.getElementById('victory-modal');
+const gameContainer = document.getElementById('game-container');
+const playerElement = document.getElementById('player');
+
+// Contenedor de decoraciones (DOM para GIFs y tamaños grandes)
+const decorationsContainer = document.createElement('div');
+decorationsContainer.id = 'decorations-container';
+gameContainer.appendChild(decorationsContainer);
 
 // Estado del juego
 let gamePaused = false;
 let currentLevel = 1;
 let timerInterval;
 let gameWon = false;
+let portalRotation = 0;
 let confettiParticles = [];
 
 // Configuración del mapa (Pixel Art)
@@ -45,6 +53,35 @@ logoCens.src = 'Logo_Cens.png';
 const logoCensnova = new Image();
 logoCensnova.src = 'Logo_Censnova.png';
 
+// Cargar Assets de Iconos
+const assets = {
+    tree: new Image(),
+    mountain: new Image(),
+    gear: new Image(),
+    tower: new Image(),
+    kmz: new Image(),
+    chip: new Image(),
+    electricity: new Image(),
+    node: new Image(),
+    star: new Image(),
+    planet: new Image(),
+    rocket: new Image(),
+    portal: new Image()
+};
+
+assets.tree.src = 'assets/arbol-de-la-vida.png';
+assets.mountain.src = 'assets/montana.png';
+assets.gear.src = 'assets/engranajes.gif';
+assets.tower.src = 'assets/torre-electrica.png';
+assets.kmz.src = 'assets/plano.png';
+assets.chip.src = 'assets/chip-de-computadora.png';
+assets.electricity.src = 'assets/relampago.png';
+assets.node.src = 'assets/lineas-electricas.gif';
+assets.star.src = 'assets/estrella.gif';
+assets.planet.src = 'assets/marte.gif';
+assets.rocket.src = 'assets/cohete.png';
+assets.portal.src = 'assets/portal.png';
+
 const player = {
     x: 50,
     y: 50,
@@ -64,6 +101,13 @@ function generateMap() {
     mapTiles = [];
     decorations = [];
     pathTiles = [];
+    
+    // Limpiar decoraciones del DOM
+    decorationsContainer.innerHTML = '';
+    
+    // Asegurar que los contenedores sean visibles (por si se reinicia el juego)
+    if (playerElement) playerElement.style.display = 'block';
+    if (decorationsContainer) decorationsContainer.style.display = 'block';
 
     const team = Math.ceil(currentLevel / 2); // 1, 2, 3, 4
 
@@ -88,8 +132,9 @@ function generateMap() {
             } else if (team === 2) { // Infraestructura (Factory/Retro)
                 const grays = ['#cfd8dc', '#b0bec5', '#90a4ae', '#78909c'];
                 baseColor = grays[Math.floor(Math.random() * grays.length)];
-            } else if (team === 3) { // Eléctricos (Electrical/Map)
-                const blues = ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6'];
+            } else if (team === 3) { // Gestión de Información (Data/Tech)
+                // Cambiado a tonos azules oscuros/petróleo para resaltar la electricidad amarilla
+                const blues = ['#006064', '#00838f', '#0097a7', '#00acc1'];
                 baseColor = blues[Math.floor(Math.random() * blues.length)];
             } else { // Censnnova (Futuristic/Space)
                 const darks = ['#263238', '#37474f', '#455a64', '#102027'];
@@ -184,34 +229,184 @@ function generateMap() {
     };
 
     // Agregar decoraciones
+    const occupiedMask = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+    
+    // Contadores para limitar elementos grandes en Censnnova
+    let planetCount = 0;
+    let rocketCount = 0;
+
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             // Si no es camino (usamos el color del camino actual para verificar)
-            if (mapTiles[r][c] !== finalPathColor) { 
-                if (Math.random() < 0.4) { // Densidad media
+            if (mapTiles[r][c] !== finalPathColor && !occupiedMask[r][c]) { 
+                if (Math.random() < 0.03) { // Densidad reducida
                     let type, color;
                     
-                    if (team === 1) { // Flores
-                        const flowerColors = ['#FF0000', '#FFFF00', '#0000FF', '#FF00FF', '#FFFFFF', '#FFA500'];
-                        type = 'flower';
-                        color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
-                    } else if (team === 2) { // Engranajes/Tuercas
-                        type = Math.random() < 0.5 ? 'gear' : 'pipe';
-                        color = '#607d8b';
-                    } else if (team === 3) { // Circuitos
-                        type = Math.random() < 0.5 ? 'node' : 'chip';
-                        color = '#0d47a1';
-                    } else { // Espacio
-                        type = Math.random() < 0.7 ? 'star' : 'planet';
-                        color = '#ffffff';
+                    if (team === 1) { // Sostenibilidad
+                        const rand = Math.random();
+                        if (rand < 0.4) {
+                            const flowerColors = ['#FF0000', '#FFFF00', '#0000FF', '#FF00FF', '#FFFFFF', '#FFA500'];
+                            type = 'flower';
+                            color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                        } else if (rand < 0.7) {
+                            type = 'tree';
+                            color = '#228B22'; // Forest Green
+                        } else {
+                            type = 'mountain'; // Montañas
+                            color = '#795548'; // Brown
+                        }
+                    } else if (team === 2) { // Infraestructura
+                        const rand = Math.random();
+                        if (rand < 0.3) {
+                            type = 'gear';
+                            color = '#607d8b';
+                        } else if (rand < 0.6) {
+                            type = 'pipe';
+                            color = '#546e7a';
+                        } else if (rand < 0.8) {
+                            type = 'tower'; // Torre de energía
+                            color = '#37474f';
+                        } else {
+                            type = 'kmz'; // Icono de mapa/KMZ
+                            color = '#d32f2f'; // Red pin
+                        }
+                    } else if (team === 3) { // Gestión de Información
+                        const rand = Math.random();
+                        if (rand < 0.4) {
+                            type = 'node';
+                            color = '#0d47a1';
+                        } else if (rand < 0.7) {
+                            type = 'chip';
+                            color = '#1565c0';
+                        } else {
+                            type = 'electricity'; // Rayo/Chispa
+                            color = '#FFD600';
+                        }
+                    } else { // Censnnova
+                        const rand = Math.random();
+                        if (rand < 0.6) {
+                            type = 'star';
+                            color = '#ffffff';
+                        } else if (rand < 0.8) {
+                            if (planetCount < 2) {
+                                type = 'planet';
+                                color = '#ffcc80';
+                                planetCount++;
+                            } else {
+                                type = 'star'; // Fallback
+                                color = '#ffffff';
+                            }
+                        } else {
+                            if (rocketCount < 2) {
+                                type = 'rocket';
+                                color = '#ff5252';
+                                rocketCount++;
+                            } else {
+                                type = 'star'; // Fallback
+                                color = '#ffffff';
+                            }
+                        }
                     }
 
-                    decorations[r][c] = {
-                        xOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                        yOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                        type: type,
-                        color: color
-                    };
+                    // Crear elemento DOM si existe el asset
+                    if (assets[type]) {
+                        // Tamaño personalizado
+                        let size = TILE_SIZE * 2; 
+                        if (type === 'tree') size = TILE_SIZE * 1.5; // Reducido
+                        if (type === 'tower') size = TILE_SIZE * 2; // Reducido (antes 3)
+                        if (type === 'gear') size = TILE_SIZE * 2.5; // Aumentado (antes 2)
+                        if (type === 'portal') size = TILE_SIZE * 3;
+                        if (type === 'star') size = TILE_SIZE * 1.5;
+                        if (type === 'planet' || type === 'rocket') size = TILE_SIZE * 4; // Aumentado significativamente
+
+                        // Calcular radio de ocupación en tiles (aprox)
+                        // Usamos un radio un poco mayor para evitar superposición visual
+                        const radius = Math.ceil(size / TILE_SIZE / 1.5);
+                        
+                        // Verificar si el área está libre
+                        let areaFree = true;
+                        for(let dy = -radius; dy <= radius; dy++) {
+                            for(let dx = -radius; dx <= radius; dx++) {
+                                const ny = r + dy;
+                                const nx = c + dx;
+                                if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+                                    if (occupiedMask[ny][nx]) {
+                                        areaFree = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if(!areaFree) break;
+                        }
+
+                        if (areaFree) {
+                            const img = document.createElement('img');
+                            img.src = assets[type].src;
+                            img.className = 'decoration-item';
+                            
+                            // Posición (Centro del tile)
+                            const cx = c * TILE_SIZE + TILE_SIZE / 2;
+                            const cy = r * TILE_SIZE + TILE_SIZE / 2;
+                            
+                            img.style.left = `${cx}px`;
+                            img.style.top = `${cy}px`;
+                            img.style.width = `${size}px`;
+                            
+                            decorationsContainer.appendChild(img);
+                            
+                            // Marcar área como ocupada
+                            for(let dy = -radius; dy <= radius; dy++) {
+                                for(let dx = -radius; dx <= radius; dx++) {
+                                    const ny = r + dy;
+                                    const nx = c + dx;
+                                    if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+                                        occupiedMask[ny][nx] = true;
+                                    }
+                                }
+                            }
+                            
+                            // No agregamos a decorations[][] para que no se dibuje en canvas
+                            decorations[r][c] = null; 
+                        } else {
+                            // Si no pudimos poner el planeta/cohete por espacio, devolvemos el contador
+                            if (type === 'planet') planetCount--;
+                            if (type === 'rocket') rocketCount--;
+                        }
+                    } else {
+                        // Si no hay asset (ej: flower, pipe), lo dejamos para el canvas
+                        decorations[r][c] = {
+                            xOffset: Math.floor(Math.random() * 5),
+                            yOffset: Math.floor(Math.random() * 5),
+                            type: type,
+                            color: color
+                        };
+                        occupiedMask[r][c] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Generar Lago (Solo en Sostenibilidad)
+    if (team === 1) {
+        // Intentar encontrar un lugar libre para el lago
+        let lakeCenterX = Math.floor(Math.random() * (COLS - 10)) + 5;
+        let lakeCenterY = Math.floor(Math.random() * (ROWS - 10)) + 5;
+        const lakeRadius = 4; // Radio en tiles
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                // Distancia al centro del lago
+                const dist = Math.sqrt(Math.pow(c - lakeCenterX, 2) + Math.pow(r - lakeCenterY, 2));
+                if (dist < lakeRadius) {
+                    // Solo poner agua si no es camino y no es el inicio/fin
+                    if (mapTiles[r][c] !== finalPathColor && 
+                        !(c === player.x/TILE_SIZE && r === player.y/TILE_SIZE) &&
+                        !(c === endX && r === endY)) {
+                        
+                        mapTiles[r][c] = '#4FC3F7'; // Agua
+                        decorations[r][c] = null; // Quitar decoraciones en el agua
+                    }
                 }
             }
         }
@@ -239,57 +434,57 @@ function repositionPoints() {
     if (team === 1) { // Sostenibilidad
         if (isAchievements) {
             newPointsData = [
-                { title: 'Logro 1: Sostenibilidad', text: 'Reducción de huella de carbono en un 15%.', color: '#28a745' },
-                { title: 'Logro 2: Reciclaje', text: 'Implementación de programa de reciclaje integral.', color: '#28a745' },
-                { title: 'Logro 3: Energía', text: 'Uso de energías renovables en un 30%.', color: '#28a745' }
+                { title: 'Logro 1: Carbono Neutral', text: 'Certificación CENS como empresa Carbono Neutral, primera del nororiente colombiano y una de las 5 primeras en el sector eléctrico. Experto: Maryuly Torres y Claudia Suárez', color: '#28a745' },
+                { title: 'Logro 2: Obras por Impuestos', text: 'Ejecucion de primer proyecto bajo el mecanismo de Obras por impuestos: Dotación de 7 Centros de Desarrollo Infantil del ICBF en Tibú, Teorama, Convención y El Tarra por M$2,134 para favorecer a 690 niños y niñas entre 0 y 5 años. Experto: Alba Plata y Darly Guerrero', color: '#28a745' },
+                { title: 'Logro 3: Impacto Ambiental', text: 'Acciones de impacto ambiental con instalación de sistemas de auto generación solar en Tibú y Aguachica para cubrir el 100% de demanda interna, reduciendo costos por auto consumos en las sedes administrativas, cuidado de especie Mono Alouatta en Buena Esperanza con instalación de pasos de fauna, zonas de alimentación y formación comunitaria, y captura de M$3,846 en beneficios tributarios por inversiones ambientales entre las cuales se resaltan postes de fibra, transformadores de potencia con aceite vegetal y equipo para analizar gas SF6. Experto: Maryuly Torres', color: '#28a745' }
             ];
         } else {
             newPointsData = [
-                { title: 'Reto 1: Agua', text: 'Optimizar el consumo de agua en procesos industriales.', color: '#dc3545' },
-                { title: 'Reto 2: Residuos', text: 'Disminuir residuos no aprovechables.', color: '#dc3545' },
-                { title: 'Reto 3: Conciencia', text: 'Aumentar la conciencia ambiental en la comunidad.', color: '#dc3545' }
+                { title: 'Reto 1: Estrategias Ambientales', text: 'Ejecutar estrategias ambientales territoriales en las regionales CENS para apalancar beneficios económicos, reputacionales y ambientales en zonas de influencia. Experto: Maryuly Torres', color: '#dc3545' },
+                { title: 'Reto 2: PMO Empresarial', text: 'Implementación PMO (Oficina de Gestión de Proyectos) empresarial como herramienta clave para fortalecer la gestión del portafolio de proyectos de CENS. Experto: Wilson Lizarazo', color: '#dc3545' },
+                { title: 'Reto 3: Obras por Impuestos', text: 'Ejecución de 2 proyectos bajo el mecanismo de Obras por Impuestos (uno CENS como contribuyente y otro una empresa del grupo como contribuyente) en municipios PDET y ZOMAC. Experto: Alba Plata', color: '#dc3545' }
             ];
         }
     } else if (team === 2) { // Planeación de Infraestructura
         if (isAchievements) {
             newPointsData = [
-                { title: 'Logro 1: Modernización', text: 'Modernización del 40% de la infraestructura física.', color: '#607d8b' },
-                { title: 'Logro 2: Mantenimiento', text: 'Reducción de costos de mantenimiento correctivo.', color: '#607d8b' },
-                { title: 'Logro 3: Expansión', text: 'Apertura de 2 nuevas plantas regionales.', color: '#607d8b' }
+                { title: 'Logro 1: Nuevas Tecnologías', text: 'Viabilización para la incorporación de nuevas tecnologías en la red de CENS. En 2025 el equipo de Planeación de Infraestructura impulsó la incorporación de nuevas tecnologías para aumentar la flexibilidad y resiliencia del sistema eléctrico, incluyendo la planificación y/o puesta en servicio de subestaciones móviles, el uso operativo del Big Jumper para disminuir indisponibilidades en maniobras y mantenimientos, y el avance en nuevas subestaciones que fortalecen la confiabilidad y la capacidad de atención de la demanda en zonas críticas del sistema.', color: '#607d8b' },
+                { title: 'Logro 2: SVC a STATCOM', text: 'Cambio de la solución de compensación reactiva de SVC a STATCOM. Se realizó el análisis técnico y la definición estratégica para migrar de una solución SVC a una tecnología STATCOM, con el objetivo de mejorar los perfiles de tensión, la estabilidad del sistema y la respuesta dinámica ante variaciones de carga y generación. Este cambio alinea a CENS con las mejores prácticas del sector y prepara la infraestructura para los retos de la transición energética y el crecimiento de la generación distribuida.', color: '#607d8b' },
+                { title: 'Logro 3: Estudios de Conexión', text: 'Fortalecimiento de los estudios de conexión y análisis de pérdidas técnicas. Durante 2025, Planeación de Infraestructura consolidó su rol técnico emitiendo más de 700 insumos para la realización de estudios de conexión y realizando más de 300 revisiones de estudios de conexión de AGPE, Generación Distribuida (GD) y AGGE, asegurando el cumplimiento de criterios técnicos y normativos. Adicionalmente, se ejecutó el estudio de pérdidas técnicas de CENS, que se convierte en una herramienta clave para priorizar inversiones, optimizar la red y soportar discusiones regulatorias y de planeación a mediano y largo plazo.', color: '#607d8b' }
             ];
         } else {
             newPointsData = [
-                { title: 'Reto 1: Obsolescencia', text: 'Gestionar la obsolescencia de equipos críticos.', color: '#ff5722' },
-                { title: 'Reto 2: Capacidad', text: 'Aumentar la capacidad de producción en un 20%.', color: '#ff5722' },
-                { title: 'Reto 3: Seguridad', text: 'Mejorar los estándares de seguridad industrial.', color: '#ff5722' }
+                { title: 'Reto 1: Plan de Cobertura 100%', text: 'Documentar y consolidar el Plan de Cobertura de CENS al 100 %. En 2026 el principal reto será documentar, actualizar y consolidar el Plan de Cobertura de CENS, identificando las brechas de servicio y definiendo la ruta de proyectos de expansión necesarios para avanzar hacia el 100 % de cobertura en el área de influencia. Esto incluye priorizar zonas no atendidas o con baja calidad de suministro, estimar inversiones y articular el plan con el Plan de Inversiones y la estrategia corporativa.', color: '#ff5722' },
+                { title: 'Reto 2: Transición Energética', text: 'Identificar y estructurar proyectos para adecuar el sistema para la transición energética. Otro reto clave es gestionar la identificación y estructuración de proyectos que permitan atender las necesidades de la transición energética, incluyendo integración de nuevas tecnologías de generación renovable, almacenamiento, comunidades energéticas y modernización de la red. El objetivo es contar con un portafolio de proyectos preparado para responder de manera oportuna a los cambios en el mercado, la regulación y las políticas públicas en materia de descarbonización y electrificación.', color: '#ff5722' },
+                { title: 'Reto 3: Nuevas Señales de Generación', text: 'Atender nuevas señales de generación en el área de influencia de CENS. Finalmente, en 2026 se plantea como reto fortalecer la capacidad de respuesta ante nuevas señales de generación (proyectos de AGPE, GD y AGGE) que se identifiquen en el territorio. Esto implica mejorar los procesos de análisis de conexión, anticipar necesidades de refuerzos y nuevas obras de infraestructura, y asegurar que la red de CENS pueda integrar de forma segura y eficiente la nueva generación, manteniendo la calidad y confiabilidad del servicio para todos los usuarios.', color: '#ff5722' }
             ];
         }
     } else if (team === 3) { // Gestión de información y Estudios Eléctricos
         if (isAchievements) {
             newPointsData = [
-                { title: 'Logro 1: Digitalización', text: 'Digitalización del 80% de los expedientes.', color: '#0288d1' },
-                { title: 'Logro 2: Analítica', text: 'Implementación de dashboard de control en tiempo real.', color: '#0288d1' },
-                { title: 'Logro 3: Redes', text: 'Mejora en la estabilidad de la red eléctrica.', color: '#0288d1' }
+                { title: 'Logro 1: Automatización', text: 'Automatización de actividades del equipo: Se realizaron automatizaciones para el seguimiento del PIR desde el MDE, Indicador de efectividad en cambio de fusibles y el seguimiento del PIR para activos centralizados.', color: '#0288d1' },
+                { title: 'Logro 2: Contratación Social', text: 'Contratación social para georreferenciación. Se ejecutó el piloto de contratación social para el georeferenciamiento de activos del SDL.', color: '#0288d1' },
+                { title: 'Logro 3: Estudios Protecciones', text: 'Estudios de coordinación de protecciones. Atención de más de 100 EACP en autogeneración y generación distribuida. Y Elaboración de EACP para proyectos estratégicos de la empresa como Sevilla 115 kV, La Playa, etc.', color: '#0288d1' }
             ];
         } else {
             newPointsData = [
-                { title: 'Reto 1: Big Data', text: 'Procesamiento eficiente de grandes volúmenes de datos.', color: '#d32f2f' },
-                { title: 'Reto 2: Predicción', text: 'Mejorar modelos predictivos de demanda.', color: '#d32f2f' },
-                { title: 'Reto 3: Integración', text: 'Integrar sistemas de información geográfica.', color: '#d32f2f' }
+                { title: 'Reto 1: Actualización PIR', text: 'Optimizar tiempos de actualización del PIR. Aplicación permanente de cargues masivos, flujo de trabajo coordinado de las demás áreas, Integración ARCGIS – MDE.', color: '#d32f2f' },
+                { title: 'Reto 2: Auditoría PIR', text: 'Atención auditoría del PIR. Atención de la auditoría de reporte de los planes de inversión.', color: '#d32f2f' },
+                { title: 'Reto 3: Calidad de Datos', text: 'Calidad de Datos. Definir indicadores de calidad de los datos.', color: '#d32f2f' }
             ];
         }
     } else { // Censnnova
         if (isAchievements) {
             newPointsData = [
-                { title: 'Logro 1: Innovación', text: 'Lanzamiento de 5 pilotos de innovación abierta.', color: '#673ab7' },
-                { title: 'Logro 2: Ecosistema', text: 'Alianza con 3 universidades líderes.', color: '#673ab7' },
-                { title: 'Logro 3: Patentes', text: 'Registro de 2 nuevas patentes tecnológicas.', color: '#673ab7' }
+                { title: 'Logro 1: Estrategia TECHNNOVA', text: 'Impacto a más de 500 personas con la estrategia TECHNNOVA y activaciones de innovación y tecnología, generando la capacidad de innovar con el uso de IA, analítica de datos y nuevas técnicas.', color: '#673ab7' },
+                { title: 'Logro 2: Agentes de IA', text: 'Construcción de 25 agentes de IA documentados y listos para despliegue, alineados a los retos corporativos.', color: '#673ab7' },
+                { title: 'Logro 3: Proyectos y Reconocimientos', text: 'En proyectos digitales logramos la entrega de 6 desarrollos DevOps y 8 en fase final para entrega + avances en TRL 7 de CTS e ITEM. Además, 3er lugar plataforma de innovación CIER 2025 + Finalistas 2025 premios Ambar con DERS.', color: '#673ab7' }
             ];
         } else {
             newPointsData = [
-                { title: 'Reto 1: Disrupción', text: 'Identificar tecnologías disruptivas para el sector.', color: '#c2185b' },
-                { title: 'Reto 2: Cultura', text: 'Fomentar la cultura de intraemprendimiento.', color: '#c2185b' },
-                { title: 'Reto 3: Futuro', text: 'Definir la visión tecnológica a 10 años.', color: '#c2185b' }
+                { title: 'Reto 1: Nuevos Negocios', text: 'Diseñar 2 nuevos negocios para Cens.', color: '#c2185b' },
+                { title: 'Reto 2: Escalar Soluciones', text: 'Escalar soluciones de desarrollo en el CIM con el acompañamiento de TI.', color: '#c2185b' },
+                { title: 'Reto 3: PMO Centralizada', text: 'Articular la PMO de CENSNNOVA junto al equipo de PMO de sostenibilidad y estrategia para consolidar una PMO centralizada.', color: '#c2185b' }
             ];
         }
     }
@@ -425,12 +620,26 @@ function update() {
         if (currentLevel >= 8) {
             gameWon = true;
             initConfetti();
+            // Ocultar elementos del juego para la pantalla de victoria
+            if (playerElement) playerElement.style.display = 'none';
+            if (decorationsContainer) decorationsContainer.style.display = 'none';
         } else {
             // Cambiar nivel
             currentLevel++;
             // Generar nuevo mapa (el jugador se queda donde está)
             generateMap();
         }
+    }
+
+    // Actualizar posición del jugador en el DOM
+    if (playerElement) {
+        playerElement.style.left = `${player.x + player.width/2}px`;
+        playerElement.style.top = `${player.y + player.height/2}px`;
+        // Usar rad for rotation since Math.sin returns radians, but CSS rotate uses deg by default or specify unit
+        // In update(), rotation is calculated as Math.sin(...) * 0.2. This is small radians.
+        playerElement.style.transform = `translate(-50%, -50%) rotate(${player.rotation}rad)`;
+        playerElement.style.width = `${player.width}px`;
+        playerElement.style.height = `${player.height}px`;
     }
 }
 
@@ -465,17 +674,77 @@ function draw() {
 
     // Dibujar puerta
     if (door) {
-        ctx.fillStyle = '#654321'; // Marrón oscuro
-        ctx.fillRect(door.x, door.y, door.width, door.height);
-        // Marco
-        ctx.strokeStyle = '#3e2723';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(door.x, door.y, door.width, door.height);
-        // Pomo
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(door.x + door.width - 10, door.y + door.height / 2, 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (currentLevel === 8) {
+            // Portal para el último nivel (Ahora usando PNG en el DOM si es posible, pero aquí es canvas fallback o si no se agregó al DOM)
+            // Como el portal es un asset importante, mejor lo dibujamos en canvas si no está en decorationsContainer
+            // Pero espera, decorationsContainer maneja los assets grandes.
+            // El portal se dibuja aquí en el canvas. Deberíamos moverlo al decorationsContainer para consistencia?
+            // El usuario pidió usar PNG.
+            
+            if (assets.portal && assets.portal.complete && assets.portal.naturalWidth !== 0) {
+                 // Dibujar portal rotando y más grande
+                 const centerX = door.x + door.width / 2;
+                 const centerY = door.y + door.height / 2;
+                 // Hacerlo más grande visualmente (2x el tamaño lógico de la puerta)
+                 const drawSize = door.width * 2; 
+                 
+                 ctx.save();
+                 ctx.translate(centerX, centerY);
+                 // Rotación continua
+                 const rotation = Date.now() / 2000; // Rotación lenta
+                 ctx.rotate(rotation);
+                 
+                 ctx.drawImage(assets.portal, -drawSize/2, -drawSize/2, drawSize, drawSize);
+                 ctx.restore();
+            } else {
+                // Fallback to code drawing
+                const centerX = door.x + door.width / 2;
+                const centerY = door.y + door.height / 2;
+                const radius = door.width / 2;
+
+                // Efecto de remolino
+                const time = Date.now() / 500;
+                
+                // Fondo del portal
+                const gradient = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, radius);
+                gradient.addColorStop(0, '#000000');
+                gradient.addColorStop(0.5, '#4a148c');
+                gradient.addColorStop(1, '#8e24aa');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Espirales giratorias
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(time);
+                ctx.strokeStyle = '#00e5ff';
+                ctx.lineWidth = 3;
+                for(let i=0; i<3; i++) {
+                    ctx.rotate((Math.PI * 2) / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(radius/2, radius/2, radius, 0);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+        } else {
+            // Puerta normal
+            ctx.fillStyle = '#654321'; // Marrón oscuro
+            ctx.fillRect(door.x, door.y, door.width, door.height);
+            // Marco
+            ctx.strokeStyle = '#3e2723';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(door.x, door.y, door.width, door.height);
+            // Pomo
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(door.x + door.width - 10, door.y + door.height / 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
     // Dibujar puntos
@@ -494,26 +763,10 @@ function draw() {
         ctx.fillText('?', point.x + 15, point.y - 10);
     });
 
-    // Dibujar jugador con rotación
-    ctx.save();
-    ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
-    ctx.rotate(player.rotation);
-    if (playerImage.complete) {
-        ctx.drawImage(playerImage, -player.width / 2, -player.height / 2, player.width, player.height);
-    } else {
-        // Fallback si la imagen no ha cargado
-        ctx.fillStyle = '#007bff';
-        ctx.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
-    }
-    ctx.restore();
+    // El jugador ahora es un elemento DOM, no se dibuja en canvas
 
     // Dibujar logos
-    // Logo CENS (Esquina inferior derecha)
-    if (logoCens.complete) {
-        const w = 150;
-        const h = (logoCens.height / logoCens.width) * w;
-        ctx.drawImage(logoCens, canvas.width - w - 20, canvas.height - h - 20, w, h);
-    }
+    // Logo CENS ahora está en el navbar
 
     // Logo Censnova (Esquina inferior izquierda)
     if (logoCensnova.complete) {
@@ -590,91 +843,62 @@ function drawBackground() {
             ctx.fillStyle = mapTiles[r][c];
             ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
-            // Dibujar decoración si existe
+            // Efecto de agua para el lago
+            if (mapTiles[r][c] === '#4FC3F7') {
+                ctx.strokeStyle = '#81D4FA';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(c * TILE_SIZE + 5, r * TILE_SIZE + 12);
+                ctx.bezierCurveTo(c * TILE_SIZE + 10, r * TILE_SIZE + 8, c * TILE_SIZE + 15, r * TILE_SIZE + 16, c * TILE_SIZE + 20, r * TILE_SIZE + 12);
+                ctx.stroke();
+            }
+
+            // Dibujar decoración si existe (Solo para elementos sin asset como flower/pipe)
             const deco = decorations[r][c];
             if (deco) {
-                const x = c * TILE_SIZE + deco.xOffset;
-                const y = r * TILE_SIZE + deco.yOffset;
+                // Centrar en el tile
+                const cx = c * TILE_SIZE + TILE_SIZE / 2;
+                const cy = r * TILE_SIZE + TILE_SIZE / 2;
+                const size = TILE_SIZE * 0.9;
 
+                // Fallback a dibujo por código
                 if (deco.type === 'flower') {
-                    // Tallo
-                    ctx.fillStyle = '#2f5719';
-                    ctx.fillRect(x + 2, y + 4, 2, 6);
-                    // Flor
+                    // Flor más detallada
+                    ctx.fillStyle = '#2f5719'; // Tallo
+                    ctx.fillRect(cx - 1, cy, 2, size/2);
+                    
                     ctx.fillStyle = deco.color;
-                    ctx.fillRect(x, y, 6, 6);
-                    // Centro
-                    ctx.fillStyle = '#FFFF00'; // Amarillo
-                    ctx.fillRect(x + 2, y + 2, 2, 2);
-                } else if (deco.type === 'gear') {
-                    // Engranaje (Nivel 2)
-                    ctx.fillStyle = deco.color;
+                    for(let i=0; i<5; i++) {
+                        const angle = (i * 2 * Math.PI) / 5;
+                        const px = cx + Math.cos(angle) * 6;
+                        const py = cy - 4 + Math.sin(angle) * 6;
+                        ctx.beginPath();
+                        ctx.arc(px, py, 4, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = '#FFFF00'; // Centro
                     ctx.beginPath();
-                    ctx.arc(x + 6, y + 6, 5, 0, Math.PI * 2);
+                    ctx.arc(cx, cy - 4, 3, 0, Math.PI*2);
                     ctx.fill();
-                    ctx.fillStyle = '#37474f'; // Centro oscuro
-                    ctx.beginPath();
-                    ctx.arc(x + 6, y + 6, 2, 0, Math.PI * 2);
-                    ctx.fill();
+
                 } else if (deco.type === 'pipe') {
-                    // Tubería (Nivel 2)
+                    // Tubería con codo
                     ctx.fillStyle = '#546e7a';
-                    ctx.fillRect(x, y + 4, 12, 4);
-                    ctx.fillStyle = '#78909c'; // Brillo
-                    ctx.fillRect(x, y + 5, 12, 1);
-                } else if (deco.type === 'node') {
-                    // Nodo (Nivel 3)
-                    ctx.fillStyle = '#ffffff';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
                     ctx.beginPath();
-                    ctx.arc(x + 6, y + 6, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = deco.color;
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(x + 6, y + 6);
-                    ctx.lineTo(x + 12, y + 12);
+                    ctx.moveTo(cx - 10, cy);
+                    ctx.lineTo(cx, cy);
+                    ctx.lineTo(cx, cy + 10);
                     ctx.stroke();
-                } else if (deco.type === 'chip') {
-                    // Chip (Nivel 3)
-                    ctx.fillStyle = '#1565c0';
-                    ctx.fillRect(x + 2, y + 2, 8, 8);
-                    ctx.fillStyle = '#ffd600'; // Pines
-                    ctx.fillRect(x, y + 3, 2, 1);
-                    ctx.fillRect(x, y + 7, 2, 1);
-                    ctx.fillRect(x + 10, y + 3, 2, 1);
-                    ctx.fillRect(x + 10, y + 7, 2, 1);
-                } else if (deco.type === 'star') {
-                    // Estrella (Nivel 4)
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(x + 2, y, 1, 5);
-                    ctx.fillRect(x, y + 2, 5, 1);
-                } else if (deco.type === 'planet') {
-                    // Planeta (Nivel 4)
-                    ctx.fillStyle = '#e91e63';
+                    // Brillo
+                    ctx.strokeStyle = '#78909c';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(x + 6, y + 6, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.ellipse(x + 6, y + 6, 6, 2, Math.PI / 4, 0, Math.PI * 2);
+                    ctx.moveTo(cx - 10, cy - 2);
+                    ctx.lineTo(cx - 2, cy - 2);
+                    ctx.lineTo(cx - 2, cy + 10);
                     ctx.stroke();
-                } else if (deco.type === 'pine') {
-                    // Pino (Legacy)
-                    ctx.fillStyle = '#1b5e20';
-                    ctx.beginPath();
-                    ctx.moveTo(x + 6, y);
-                    ctx.lineTo(x + 12, y + 12);
-                    ctx.lineTo(x, y + 12);
-                    ctx.fill();
-                    ctx.fillStyle = '#3e2723';
-                    ctx.fillRect(x + 5, y + 12, 2, 4);
-                } else if (deco.type === 'rock') {
-                    // Roca (Legacy)
-                    ctx.fillStyle = '#9e9e9e';
-                    ctx.fillRect(x, y + 8, 8, 6);
-                    ctx.fillStyle = '#bdbdbd';
-                    ctx.fillRect(x + 2, y + 8, 2, 2);
                 }
             }
         }

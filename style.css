@@ -177,3 +177,41 @@ canvas {
     width: auto;
     object-fit: contain;
 }
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+#decorations-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.decoration-item {
+    position: absolute;
+    transform: translate(-50%, -50%); /* Centrar en el punto de anclaje */
+    object-fit: contain;
+}
+
+#header-logo {
+    height: 50px;
+    margin-right: 20px;
+    object-fit: contain;
+}
+
+#player {
+    position: absolute;
+    z-index: 10; /* Encima de decoraciones (5) */
+    transform-origin: center center;
+    pointer-events: none; /* Para que no interfiera con clicks si los hubiera */
+}
+
+#popup {
+    z-index: 200; /* Encima de todo */
+}
