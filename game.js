@@ -468,15 +468,15 @@ function repositionPoints() {
     } else if (team === 3) { // Gestión de información y Estudios Eléctricos
         if (isAchievements) {
             newPointsData = [
-                { title: 'Logro 1: Automatización', text: 'Automatización de actividades del equipo: Se realizaron automatizaciones para el seguimiento del PIR desde el MDE, Indicador de efectividad en cambio de fusibles y el seguimiento del PIR para activos centralizados.', color: '#0288d1' },
-                { title: 'Logro 2: Contratación Social', text: 'Contratación social para georreferenciación. Se ejecutó el piloto de contratación social para el georeferenciamiento de activos del SDL.', color: '#0288d1' },
-                { title: 'Logro 3: Estudios Protecciones', text: 'Estudios de coordinación de protecciones. Atención de más de 100 EACP en autogeneración y generación distribuida. Y Elaboración de EACP para proyectos estratégicos de la empresa como Sevilla 115 kV, La Playa, etc.', color: '#0288d1' }
+                { title: 'Logro 1: Indicadores SAIDI-SAIFI', text: 'Cumplimiento de indicadores SAIDI-SAIFI. Se definieron lineamientos y mecanismos de integración en la Planeación y Coordinación Operativa, logrando identificar oportunidades en desconexiones programadas que redujeron 9 horas en SAIDI. Además, se impulsaron iniciativas como la estrategia META15, fortaleciendo el cumplimiento de la planeación en las dependencias.', color: '#0288d1' },
+                { title: 'Logro 2: Coordinación Operativa', text: 'Optimización de la coordinación operativa desde el Centro de Control. Se mejoraron los tiempos de respuesta ante contingencias, garantizando una operación continua, segura y eficiente del servicio. Este logro se alcanzó mediante trabajo colaborativo, fortalecimiento de capacidades técnicas y uso efectivo de herramientas tecnológicas para la toma de decisiones en tiempo real.', color: '#0288d1' },
+                { title: 'Logro 3: Infraestructura Tecnológica', text: 'Avances en infraestructura tecnológica y automatización. Diseño e implementación de arquitecturas SAS en la remodelación de Sevilla Digital y participación en el diseño del SAS para Tonchalá 230 Digital. Implementación de la red propia de telecomunicaciones en fibra óptica y radiofrecuencia instalada en el SDL. Consolidación del contrato e implementación del software Optimus para el Centro de Gestión de la Medida.', color: '#0288d1' }
             ];
         } else {
             newPointsData = [
-                { title: 'Reto 1: Actualización PIR', text: 'Optimizar tiempos de actualización del PIR. Aplicación permanente de cargues masivos, flujo de trabajo coordinado de las demás áreas, Integración ARCGIS – MDE.', color: '#d32f2f' },
-                { title: 'Reto 2: Auditoría PIR', text: 'Atención auditoría del PIR. Atención de la auditoría de reporte de los planes de inversión.', color: '#d32f2f' },
-                { title: 'Reto 3: Calidad de Datos', text: 'Calidad de Datos. Definir indicadores de calidad de los datos.', color: '#d32f2f' }
+                { title: 'Reto 1: Calidad del Servicio', text: 'Maduración del esquema de calidad del servicio. Ante posibles cambios regulatorios, se requiere fortalecer herramientas de control, simplificar documentación, implementar planes de manejo del cambio y reducir recurrencia en verificaciones para garantizar cumplimiento integral.', color: '#d32f2f' },
+                { title: 'Reto 2: Modernización Centro Control', text: 'Modernización del Centro de Control. Implementar herramientas avanzadas de simulación y análisis para el entrenamiento y habilitación de operadores, consolidar la resiliencia del sistema eléctrico y preparar al talento humano para enfrentar los desafíos del plan de inversiones y la adopción de nuevas tecnologías.', color: '#d32f2f' },
+                { title: 'Reto 3: Transformación Tecnológica', text: 'Continuidad en la transformación tecnológica. Diseñar e implementar nuevas arquitecturas de comunicaciones y segmentación de la red TO y fortalecer la disponibilidad de los sistemas y activos que soportan la operación. Consolidar esquemas para disponibilidad contractual de activos TO. Desarrollar estudios para arquitecturas SAS en proyectos estratégicos como Tonchalá Generación.', color: '#d32f2f' }
             ];
         }
     } else { // Censnnova
@@ -588,7 +588,7 @@ closeBtn.addEventListener('click', () => {
 });
 
 function startTimer() {
-    let timeLeft = 420; // 7 minutos en segundos
+    let timeLeft = 120; // 2 minutos en segundos
     updateTimerDisplay(timeLeft);
     
     clearInterval(timerInterval);
@@ -800,11 +800,6 @@ function draw() {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.strokeRect(point.x, point.y, point.width, point.height);
-
-        // Etiqueta simple (opcional)
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 14px monospace';
-        ctx.fillText('?', point.x + 15, point.y - 10);
     });
 
     // El jugador ahora es un elemento DOM, no se dibuja en canvas
