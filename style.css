@@ -9,29 +9,45 @@ body {
 }
 
 h1, p {
+    margin: 0;
+    padding: 0;
+}
+
+#ui-header {
     position: absolute;
-    z-index: 10;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 5px 10px;
-    border-radius: 5px;
-    pointer-events: none; /* Para que no interfieran con el juego */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
 }
 
-h1 {
-    top: 100px;
-    right: 20px;
-    left: auto;
-    margin: 0;
+.header-content h1 {
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+}
+
+.header-content p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+#team-display {
     font-size: 1.5rem;
-    text-align: right;
-}
-
-p {
-    top: 140px;
-    right: 20px;
-    left: auto;
-    margin: 0;
-    text-align: right;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .container {
@@ -87,6 +103,14 @@ canvas {
     color: #007bff;
 }
 
+.timer {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #dc3545;
+    margin: 10px 0;
+    font-family: monospace;
+}
+
 #close-btn {
     background-color: #007bff;
     color: white;
@@ -100,4 +124,56 @@ canvas {
 
 #close-btn:hover {
     background-color: #0056b3;
+}
+
+/* Estilos del Modal de Victoria */
+#victory-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px 60px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    text-align: center;
+    z-index: 300;
+    max-width: 90%;
+    animation: slideUp 0.5s ease-out;
+}
+
+#victory-modal.hidden {
+    display: none;
+}
+
+@keyframes slideUp {
+    from { transform: translate(-50%, -40%); opacity: 0; }
+    to { transform: translate(-50%, -50%); opacity: 1; }
+}
+
+.victory-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logos-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+.victory-title {
+    font-size: 3.5rem;
+    color: #004d40;
+    margin: 0;
+    white-space: nowrap;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.victory-logo {
+    height: 120px;
+    width: auto;
+    object-fit: contain;
 }

@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Censnnova - El Juego</title>
+    <title>Reporte UGO - El Juego</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="container">
-        <h1>Reporte de Logros y Retos - Censnnova</h1>
-        <p>Usa las <strong>flechas del t    eclado</strong> para mover al personaje (cuadrado azul) hacia los puntos de interés (rojos).</p>
+        <div id="ui-header">
+            <div class="header-content">
+                <h1>Reporte de Logros y Retos - UGO</h1>
+                <p>Usa las <strong>flechas</strong> para moverte.</p>
+            </div>
+            <div id="team-display">Equipo: Sostenibilidad</div>
+        </div>
         
         <div id="game-container">
             <canvas id="gameCanvas"></canvas>
@@ -20,7 +25,19 @@
                 <div class="popup-content">
                     <h2 id="popup-title">Título</h2>
                     <p id="popup-text">Texto del logro...</p>
+                    <div id="popup-timer" class="timer">07:00</div>
                     <button id="close-btn">Continuar</button>
+                </div>
+            </div>
+
+            <!-- El Modal de Victoria -->
+            <div id="victory-modal" class="hidden">
+                <div class="victory-content">
+                    <div class="logos-container">
+                        <img src="Logo_Cens.png" alt="CENS" class="victory-logo">
+                        <h2 class="victory-title">¡Feliz Navidad!</h2>
+                        <img src="Logo_Censnova.png" alt="Censnnova" class="victory-logo">
+                    </div>
                 </div>
             </div>
         </div>

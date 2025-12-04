@@ -12,14 +12,20 @@ resizeCanvas();
 const popup = document.getElementById('popup');
 const popupTitle = document.getElementById('popup-title');
 const popupText = document.getElementById('popup-text');
+const popupTimer = document.getElementById('popup-timer');
 const closeBtn = document.getElementById('close-btn');
+const teamDisplay = document.getElementById('team-display');
+const victoryModal = document.getElementById('victory-modal');
 
 // Estado del juego
 let gamePaused = false;
 let currentLevel = 1;
+let timerInterval;
+let gameWon = false;
+let confettiParticles = [];
 
 // Configuración del mapa (Pixel Art)
-const TILE_SIZE = 40;
+const TILE_SIZE = 25;
 let COLS = Math.ceil(canvas.width / TILE_SIZE);
 let ROWS = Math.ceil(canvas.height / TILE_SIZE);
 let mapTiles = [];
@@ -32,11 +38,18 @@ let door = null; // Puerta al siguiente nivel
 const playerImage = new Image();
 playerImage.src = 'image-removebg-preview.png';
 
+// Logos
+const logoCens = new Image();
+logoCens.src = 'Logo_Cens.png';
+
+const logoCensnova = new Image();
+logoCensnova.src = 'Logo_Censnova.png';
+
 const player = {
     x: 50,
     y: 50,
-    width: 250,
-    height: 250,
+    width: 150,
+    height: 150,
     speed: 2,
     rotation: 0,
     walkAnimTimer: 0,
@@ -52,19 +65,35 @@ function generateMap() {
     decorations = [];
     pathTiles = [];
 
-    // Inicializar mapa con pasto o nieve según nivel
+    const team = Math.ceil(currentLevel / 2); // 1, 2, 3, 4
+
+    // Actualizar nombre del equipo
+    let teamName = '';
+    if (team === 1) teamName = 'Equipo: Sostenibilidad';
+    else if (team === 2) teamName = 'Equipo: Planeación de Infraestructura';
+    else if (team === 3) teamName = 'Equipo: Gestión de Información y Estudios';
+    else teamName = 'Equipo: Censnnova';
+    
+    teamDisplay.innerText = teamName;
+
+    // Inicializar mapa según nivel
     for (let r = 0; r < ROWS; r++) {
         const row = [];
         const decoRow = [];
         for (let c = 0; c < COLS; c++) {
             let baseColor;
-            if (currentLevel === 1) {
+            if (team === 1) { // Sostenibilidad (Nature)
                 const greens = ['#76c442', '#6ab03b', '#82d649', '#5e9e35'];
                 baseColor = greens[Math.floor(Math.random() * greens.length)];
-            } else {
-                // Nivel 2: Nieve/Hielo
-                const whites = ['#e3f2fd', '#bbdefb', '#90caf9', '#ffffff'];
-                baseColor = whites[Math.floor(Math.random() * whites.length)];
+            } else if (team === 2) { // Infraestructura (Factory/Retro)
+                const grays = ['#cfd8dc', '#b0bec5', '#90a4ae', '#78909c'];
+                baseColor = grays[Math.floor(Math.random() * grays.length)];
+            } else if (team === 3) { // Eléctricos (Electrical/Map)
+                const blues = ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6'];
+                baseColor = blues[Math.floor(Math.random() * blues.length)];
+            } else { // Censnnova (Futuristic/Space)
+                const darks = ['#263238', '#37474f', '#455a64', '#102027'];
+                baseColor = darks[Math.floor(Math.random() * darks.length)];
             }
             row.push(baseColor);
             decoRow.push(null); // Inicialmente sin decoración
@@ -73,68 +102,62 @@ function generateMap() {
         decorations.push(decoRow);
     }
 
-    // Generar camino sinuoso (Random Walk sesgado hacia la meta)
-    // Empezar en los pies del jugador
-    let currentX = Math.floor((player.x + player.width / 2) / TILE_SIZE);
-    let currentY = Math.floor((player.y + player.height - 50) / TILE_SIZE); // Ajustado a los pies
+    // Generar camino: Bottom-Left -> Top-Right
+    let currentX = 2;
+    let currentY = ROWS - 3;
     
-    // Asegurar que esté dentro de los límites
-    currentX = Math.max(1, Math.min(currentX, COLS - 2));
-    currentY = Math.max(1, Math.min(currentY, ROWS - 2));
+    // Posicionar al jugador al inicio
+    player.x = currentX * TILE_SIZE;
+    player.y = currentY * TILE_SIZE - player.height + TILE_SIZE;
 
-    // Definir punto final lejos del inicio y con margen de seguridad
-    // Si estamos a la derecha, ir a la izquierda. Si estamos abajo, ir arriba.
-    let endX, endY;
-    
-    if (currentX > COLS / 2) {
-        endX = 5; // Ir a la izquierda (margen de 5 bloques)
-    } else {
-        endX = COLS - 8; // Ir a la derecha (margen de 8 bloques para evitar borde)
-    }
-
-    if (currentY > ROWS / 2) {
-        endY = 5; // Ir arriba
-    } else {
-        endY = ROWS - 8; // Ir abajo
-    }
+    // Punto final (Top-Right)
+    let endX = COLS - 8; // Más lejos de la esquina derecha para que el jugador quepa bien
+    let endY = 8; // Más abajo para evitar el navbar
     
     // Asegurar que el camino llegue al final
     while (currentX !== endX || currentY !== endY) {
         pathTiles.push({x: currentX, y: currentY});
         
-        // Marcar en el mapa visual (más ancho y amarillo)
+        // Marcar en el mapa visual
+        let pathColor;
+        if (team === 1) pathColor = '#FFD700'; // Amarillo
+        else if (team === 2) pathColor = '#5d4037'; // Marrón industrial
+        else if (team === 3) pathColor = '#1565c0'; // Azul oscuro
+        else pathColor = '#00e676'; // Verde neón
+
         // Dibujamos un bloque de 3x3 alrededor del punto actual
         for(let dy = -1; dy <= 1; dy++) {
             for(let dx = -1; dx <= 1; dx++) {
                 const py = currentY + dy;
                 const px = currentX + dx;
                 if (py >= 0 && py < ROWS && px >= 0 && px < COLS) {
-                    mapTiles[py][px] = currentLevel === 1 ? '#FFD700' : '#795548'; // Amarillo o Tierra
+                    mapTiles[py][px] = pathColor;
                 }
             }
         }
 
-        // Decidir siguiente paso
-        // Mayor probabilidad de moverse hacia la meta
+        // Decidir siguiente paso (Sesgado hacia Top-Right: +X, -Y)
         const moveX = endX - currentX;
         const moveY = endY - currentY;
         
-        // Aleatoriedad para curvas
         const random = Math.random();
         
+        // Priorizar el eje más lejano, pero con aleatoriedad
         if (Math.abs(moveX) > Math.abs(moveY)) {
-            // Moverse en X preferiblemente
-            if (random < 0.7) {
+            if (random < 0.6) {
                 currentX += Math.sign(moveX);
             } else {
-                currentY += Math.sign(moveY) !== 0 ? Math.sign(moveY) : (Math.random() < 0.5 ? 1 : -1);
+                // Moverse en Y o variar un poco
+                if (moveY !== 0) currentY += Math.sign(moveY);
+                else currentY += (Math.random() < 0.5 ? 1 : -1);
             }
         } else {
-            // Moverse en Y preferiblemente
-            if (random < 0.7) {
+            if (random < 0.6) {
                 currentY += Math.sign(moveY);
             } else {
-                currentX += Math.sign(moveX) !== 0 ? Math.sign(moveX) : (Math.random() < 0.5 ? 1 : -1);
+                // Moverse en X o variar un poco
+                if (moveX !== 0) currentX += Math.sign(moveX);
+                else currentX += (Math.random() < 0.5 ? 1 : -1);
             }
         }
         
@@ -144,37 +167,51 @@ function generateMap() {
     }
     // Agregar el punto final
     pathTiles.push({x: endX, y: endY});
-    mapTiles[endY][endX] = currentLevel === 1 ? '#FFD700' : '#795548';
+    let finalPathColor;
+    if (team === 1) finalPathColor = '#FFD700';
+    else if (team === 2) finalPathColor = '#5d4037';
+    else if (team === 3) finalPathColor = '#1565c0';
+    else finalPathColor = '#00e676';
+    mapTiles[endY][endX] = finalPathColor;
 
     // Configurar puerta
+    // Hacer la puerta más grande (2x2 tiles) para facilitar el acceso
     door = {
         x: endX * TILE_SIZE,
         y: endY * TILE_SIZE,
-        width: TILE_SIZE,
-        height: TILE_SIZE
+        width: TILE_SIZE * 2,
+        height: TILE_SIZE * 2
     };
 
-    // Agregar decoraciones (Flores de colores o Pinos)
+    // Agregar decoraciones
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            if (mapTiles[r][c] !== (currentLevel === 1 ? '#FFD700' : '#795548')) { // Si no es camino
-                if (Math.random() < 0.6) { // Alta densidad
-                    if (currentLevel === 1) {
+            // Si no es camino (usamos el color del camino actual para verificar)
+            if (mapTiles[r][c] !== finalPathColor) { 
+                if (Math.random() < 0.4) { // Densidad media
+                    let type, color;
+                    
+                    if (team === 1) { // Flores
                         const flowerColors = ['#FF0000', '#FFFF00', '#0000FF', '#FF00FF', '#FFFFFF', '#FFA500'];
-                        decorations[r][c] = {
-                            xOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                            yOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                            type: 'flower',
-                            color: flowerColors[Math.floor(Math.random() * flowerColors.length)]
-                        };
-                    } else {
-                        // Nivel 2: Pinos o Rocas
-                        decorations[r][c] = {
-                            xOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                            yOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
-                            type: Math.random() < 0.7 ? 'pine' : 'rock'
-                        };
+                        type = 'flower';
+                        color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                    } else if (team === 2) { // Engranajes/Tuercas
+                        type = Math.random() < 0.5 ? 'gear' : 'pipe';
+                        color = '#607d8b';
+                    } else if (team === 3) { // Circuitos
+                        type = Math.random() < 0.5 ? 'node' : 'chip';
+                        color = '#0d47a1';
+                    } else { // Espacio
+                        type = Math.random() < 0.7 ? 'star' : 'planet';
+                        color = '#ffffff';
                     }
+
+                    decorations[r][c] = {
+                        xOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
+                        yOffset: Math.floor(Math.random() * (TILE_SIZE - 10)),
+                        type: type,
+                        color: color
+                    };
                 }
             }
         }
@@ -189,43 +226,90 @@ function repositionPoints() {
     
     // Índices para 3 puntos distribuidos
     const indices = [
-        Math.floor(pathTiles.length * 0.2),
-        Math.floor(pathTiles.length * 0.5),
+        Math.floor(pathTiles.length * 0.25),
+        Math.floor(pathTiles.length * 0.50),
         Math.floor(pathTiles.length * 0.75)
     ];
 
     // Actualizar coordenadas de los puntos existentes
-    // Solo usamos los primeros 3 puntos de la lista original o creamos nuevos si faltan
     let newPointsData = [];
+    const team = Math.ceil(currentLevel / 2);
+    const isAchievements = (currentLevel % 2 !== 0); // Impares son Logros, Pares son Retos
     
-    if (currentLevel === 1) {
-        newPointsData = [
-            { title: 'Logro: Implementación', text: 'Se logró implementar el nuevo módulo de analítica con un 99% de disponibilidad.', color: '#28a745' },
-            { title: 'Reto: Integración', text: 'La integración con el sistema legado presentó inconsistencias que estamos resolviendo.', color: '#dc3545' },
-            { title: 'Próximos Pasos', text: 'Iniciar la fase 2 del proyecto enfocada en la experiencia de usuario móvil.', color: '#ffc107' }
-        ];
-    } else {
-        newPointsData = [
-            { title: 'Estrategia Digital', text: 'Consolidación de la hoja de ruta digital para el próximo quinquenio.', color: '#00bcd4' },
-            { title: 'Ciberseguridad', text: 'Implementación de doble factor de autenticación en todos los sistemas críticos.', color: '#673ab7' },
-            { title: 'Innovación Abierta', text: 'Lanzamiento de 3 retos de innovación con startups locales.', color: '#e91e63' }
-        ];
+    if (team === 1) { // Sostenibilidad
+        if (isAchievements) {
+            newPointsData = [
+                { title: 'Logro 1: Sostenibilidad', text: 'Reducción de huella de carbono en un 15%.', color: '#28a745' },
+                { title: 'Logro 2: Reciclaje', text: 'Implementación de programa de reciclaje integral.', color: '#28a745' },
+                { title: 'Logro 3: Energía', text: 'Uso de energías renovables en un 30%.', color: '#28a745' }
+            ];
+        } else {
+            newPointsData = [
+                { title: 'Reto 1: Agua', text: 'Optimizar el consumo de agua en procesos industriales.', color: '#dc3545' },
+                { title: 'Reto 2: Residuos', text: 'Disminuir residuos no aprovechables.', color: '#dc3545' },
+                { title: 'Reto 3: Conciencia', text: 'Aumentar la conciencia ambiental en la comunidad.', color: '#dc3545' }
+            ];
+        }
+    } else if (team === 2) { // Planeación de Infraestructura
+        if (isAchievements) {
+            newPointsData = [
+                { title: 'Logro 1: Modernización', text: 'Modernización del 40% de la infraestructura física.', color: '#607d8b' },
+                { title: 'Logro 2: Mantenimiento', text: 'Reducción de costos de mantenimiento correctivo.', color: '#607d8b' },
+                { title: 'Logro 3: Expansión', text: 'Apertura de 2 nuevas plantas regionales.', color: '#607d8b' }
+            ];
+        } else {
+            newPointsData = [
+                { title: 'Reto 1: Obsolescencia', text: 'Gestionar la obsolescencia de equipos críticos.', color: '#ff5722' },
+                { title: 'Reto 2: Capacidad', text: 'Aumentar la capacidad de producción en un 20%.', color: '#ff5722' },
+                { title: 'Reto 3: Seguridad', text: 'Mejorar los estándares de seguridad industrial.', color: '#ff5722' }
+            ];
+        }
+    } else if (team === 3) { // Gestión de información y Estudios Eléctricos
+        if (isAchievements) {
+            newPointsData = [
+                { title: 'Logro 1: Digitalización', text: 'Digitalización del 80% de los expedientes.', color: '#0288d1' },
+                { title: 'Logro 2: Analítica', text: 'Implementación de dashboard de control en tiempo real.', color: '#0288d1' },
+                { title: 'Logro 3: Redes', text: 'Mejora en la estabilidad de la red eléctrica.', color: '#0288d1' }
+            ];
+        } else {
+            newPointsData = [
+                { title: 'Reto 1: Big Data', text: 'Procesamiento eficiente de grandes volúmenes de datos.', color: '#d32f2f' },
+                { title: 'Reto 2: Predicción', text: 'Mejorar modelos predictivos de demanda.', color: '#d32f2f' },
+                { title: 'Reto 3: Integración', text: 'Integrar sistemas de información geográfica.', color: '#d32f2f' }
+            ];
+        }
+    } else { // Censnnova
+        if (isAchievements) {
+            newPointsData = [
+                { title: 'Logro 1: Innovación', text: 'Lanzamiento de 5 pilotos de innovación abierta.', color: '#673ab7' },
+                { title: 'Logro 2: Ecosistema', text: 'Alianza con 3 universidades líderes.', color: '#673ab7' },
+                { title: 'Logro 3: Patentes', text: 'Registro de 2 nuevas patentes tecnológicas.', color: '#673ab7' }
+            ];
+        } else {
+            newPointsData = [
+                { title: 'Reto 1: Disrupción', text: 'Identificar tecnologías disruptivas para el sector.', color: '#c2185b' },
+                { title: 'Reto 2: Cultura', text: 'Fomentar la cultura de intraemprendimiento.', color: '#c2185b' },
+                { title: 'Reto 3: Futuro', text: 'Definir la visión tecnológica a 10 años.', color: '#c2185b' }
+            ];
+        }
     }
 
     points.length = 0; // Limpiar array actual
     
     indices.forEach((pathIndex, i) => {
-        const tile = pathTiles[pathIndex];
-        points.push({
-            x: tile.x * TILE_SIZE + (TILE_SIZE - 40) / 2, // Centrar en el tile
-            y: tile.y * TILE_SIZE + (TILE_SIZE - 40) / 2,
-            width: 40,
-            height: 40,
-            color: newPointsData[i].color,
-            title: newPointsData[i].title,
-            text: newPointsData[i].text,
-            visited: false
-        });
+        if (i < newPointsData.length) {
+            const tile = pathTiles[pathIndex];
+            points.push({
+                x: tile.x * TILE_SIZE, // Ocupar todo el tile
+                y: tile.y * TILE_SIZE,
+                width: TILE_SIZE,
+                height: TILE_SIZE,
+                color: newPointsData[i].color,
+                title: newPointsData[i].title,
+                text: newPointsData[i].text,
+                visited: false
+            });
+        }
     });
 }
 
@@ -261,11 +345,42 @@ window.addEventListener('keyup', (e) => {
 });
 
 closeBtn.addEventListener('click', () => {
+    closePopup();
+});
+
+function startTimer() {
+    let timeLeft = 420; // 7 minutos en segundos
+    updateTimerDisplay(timeLeft);
+    
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay(timeLeft);
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            closePopup();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    popupTimer.innerText = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+}
+
+function closePopup() {
     popup.classList.add('hidden');
     gamePaused = false;
+    stopTimer();
     // Mover al jugador un poco para que no active el popup inmediatamente de nuevo
     player.y += 10; 
-});
+}
 
 function update() {
     if (gamePaused) return;
@@ -289,7 +404,8 @@ function update() {
 
     // Colisiones
     // Definir hitbox más pequeño para el jugador (centro del sprite)
-    const hitboxMargin = 100; // Reducir 100px por cada lado (250 - 200 = 50px de hitbox)
+    // Ajustado para tamaño de jugador 150px: 150 - (60*2) = 30px de hitbox central
+    const hitboxMargin = 60; 
     const playerHitbox = {
         x: player.x + hitboxMargin,
         y: player.y + hitboxMargin,
@@ -306,10 +422,15 @@ function update() {
 
     // Colisión con puerta
     if (door && checkCollision(playerHitbox, door)) {
-        // Cambiar nivel
-        currentLevel++;
-        // Generar nuevo mapa (el jugador se queda donde está)
-        generateMap();
+        if (currentLevel >= 8) {
+            gameWon = true;
+            initConfetti();
+        } else {
+            // Cambiar nivel
+            currentLevel++;
+            // Generar nuevo mapa (el jugador se queda donde está)
+            generateMap();
+        }
     }
 }
 
@@ -327,11 +448,17 @@ function showPopup(point) {
     popupTitle.innerText = point.title;
     popupText.innerText = point.text;
     popup.classList.remove('hidden');
+    startTimer();
 }
 
 function draw() {
     // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (gameWon) {
+        drawVictoryScreen();
+        return;
+    }
 
     // Dibujar fondo (Pasto Pixel Art)
     drawBackground();
@@ -380,15 +507,80 @@ function draw() {
     }
     ctx.restore();
 
-    // Dibujar texto CENS en la esquina superior derecha
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 80px monospace';
-    ctx.textAlign = 'right';
-    ctx.shadowColor = "black";
-    ctx.shadowBlur = 5;
-    ctx.fillText('CENS', canvas.width - 50, canvas.height - 100);
-    ctx.shadowBlur = 0; // Resetear sombra
-    ctx.textAlign = 'left'; // Resetear alineación
+    // Dibujar logos
+    // Logo CENS (Esquina inferior derecha)
+    if (logoCens.complete) {
+        const w = 150;
+        const h = (logoCens.height / logoCens.width) * w;
+        ctx.drawImage(logoCens, canvas.width - w - 20, canvas.height - h - 20, w, h);
+    }
+
+    // Logo Censnova (Esquina inferior izquierda)
+    if (logoCensnova.complete) {
+        const w = 120;
+        const h = (logoCensnova.height / logoCensnova.width) * w;
+        ctx.drawImage(logoCensnova, 20, canvas.height - h - 20, w, h);
+    }
+}
+
+function initConfetti() {
+    for (let i = 0; i < 200; i++) {
+        // Decidir si sale de la izquierda o derecha
+        const fromLeft = Math.random() < 0.5;
+        confettiParticles.push({
+            x: fromLeft ? -10 : canvas.width + 10,
+            y: Math.random() * canvas.height,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            size: Math.random() * 10 + 5,
+            // Velocidad hacia el centro
+            speedX: fromLeft ? (Math.random() * 5 + 2) : -(Math.random() * 5 + 2),
+            speedY: Math.random() * 4 - 2, // Un poco de movimiento vertical
+            rotation: Math.random() * 360,
+            rotationSpeed: Math.random() * 10 - 5
+        });
+    }
+}
+
+function updateConfetti() {
+    confettiParticles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+        p.rotation += p.rotationSpeed;
+        
+        // Gravedad ligera
+        p.speedY += 0.05;
+
+        // Reiniciar si salen de la pantalla
+        if (p.y > canvas.height || (p.speedX > 0 && p.x > canvas.width) || (p.speedX < 0 && p.x < 0)) {
+            const fromLeft = Math.random() < 0.5;
+            p.x = fromLeft ? -10 : canvas.width + 10;
+            p.y = Math.random() * canvas.height * 0.5; // Reiniciar más arriba
+            p.speedX = fromLeft ? (Math.random() * 5 + 2) : -(Math.random() * 5 + 2);
+            p.speedY = Math.random() * 4 - 2;
+        }
+    });
+}
+
+function drawVictoryScreen() {
+    // Fondo blanco
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Actualizar confeti
+    updateConfetti();
+
+    // Dibujar confeti
+    confettiParticles.forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+    });
+
+    // Mostrar el modal HTML
+    victoryModal.classList.remove('hidden');
 }
 
 function drawBackground() {
@@ -414,36 +606,75 @@ function drawBackground() {
                     // Centro
                     ctx.fillStyle = '#FFFF00'; // Amarillo
                     ctx.fillRect(x + 2, y + 2, 2, 2);
+                } else if (deco.type === 'gear') {
+                    // Engranaje (Nivel 2)
+                    ctx.fillStyle = deco.color;
+                    ctx.beginPath();
+                    ctx.arc(x + 6, y + 6, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#37474f'; // Centro oscuro
+                    ctx.beginPath();
+                    ctx.arc(x + 6, y + 6, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (deco.type === 'pipe') {
+                    // Tubería (Nivel 2)
+                    ctx.fillStyle = '#546e7a';
+                    ctx.fillRect(x, y + 4, 12, 4);
+                    ctx.fillStyle = '#78909c'; // Brillo
+                    ctx.fillRect(x, y + 5, 12, 1);
+                } else if (deco.type === 'node') {
+                    // Nodo (Nivel 3)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(x + 6, y + 6, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = deco.color;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 6, y + 6);
+                    ctx.lineTo(x + 12, y + 12);
+                    ctx.stroke();
+                } else if (deco.type === 'chip') {
+                    // Chip (Nivel 3)
+                    ctx.fillStyle = '#1565c0';
+                    ctx.fillRect(x + 2, y + 2, 8, 8);
+                    ctx.fillStyle = '#ffd600'; // Pines
+                    ctx.fillRect(x, y + 3, 2, 1);
+                    ctx.fillRect(x, y + 7, 2, 1);
+                    ctx.fillRect(x + 10, y + 3, 2, 1);
+                    ctx.fillRect(x + 10, y + 7, 2, 1);
+                } else if (deco.type === 'star') {
+                    // Estrella (Nivel 4)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(x + 2, y, 1, 5);
+                    ctx.fillRect(x, y + 2, 5, 1);
+                } else if (deco.type === 'planet') {
+                    // Planeta (Nivel 4)
+                    ctx.fillStyle = '#e91e63';
+                    ctx.beginPath();
+                    ctx.arc(x + 6, y + 6, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.ellipse(x + 6, y + 6, 6, 2, Math.PI / 4, 0, Math.PI * 2);
+                    ctx.stroke();
                 } else if (deco.type === 'pine') {
-                    // Pino (Nivel 2)
-                    ctx.fillStyle = '#1b5e20'; // Verde oscuro
-                    // Triángulo simple
+                    // Pino (Legacy)
+                    ctx.fillStyle = '#1b5e20';
                     ctx.beginPath();
                     ctx.moveTo(x + 6, y);
                     ctx.lineTo(x + 12, y + 12);
                     ctx.lineTo(x, y + 12);
                     ctx.fill();
-                    // Tronco
                     ctx.fillStyle = '#3e2723';
                     ctx.fillRect(x + 5, y + 12, 2, 4);
                 } else if (deco.type === 'rock') {
-                    // Roca (Nivel 2)
-                    ctx.fillStyle = '#9e9e9e'; // Gris
+                    // Roca (Legacy)
+                    ctx.fillStyle = '#9e9e9e';
                     ctx.fillRect(x, y + 8, 8, 6);
-                    ctx.fillStyle = '#bdbdbd'; // Brillo
+                    ctx.fillStyle = '#bdbdbd';
                     ctx.fillRect(x + 2, y + 8, 2, 2);
-                } else if (deco.type === 'grass') {
-                    // Pasto pequeño
-                    ctx.fillStyle = '#3e7023';
-                    ctx.fillRect(x, y, 4, 4);
-                    ctx.fillRect(x + 4, y - 4, 4, 4);
-                    ctx.fillRect(x + 8, y, 4, 4);
-                } else {
-                    // Matorral pequeño
-                    ctx.fillStyle = '#2f5719';
-                    ctx.fillRect(x, y, 12, 12);
-                    ctx.fillStyle = '#4a8529'; // Brillo
-                    ctx.fillRect(x + 2, y + 2, 4, 4);
                 }
             }
         }
